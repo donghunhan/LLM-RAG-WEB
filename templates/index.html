@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG 챗봇 테스트 </title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: 'Noto Sans KR', Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .chat-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            height: 400px;
+            overflow-y: auto;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            margin-left: auto;
+            text-align: right;
+        }
+        .bot-message {
+            background-color: #f1f1f1;
+            margin-right: auto;
+        }
+        .input-area {
+            display: flex;
+            margin-top: 20px;
+        }
+        #user-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        #send-button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        #send-button:hover {
+            background-color: #45a049;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <h1>토양수분 정보 챗봇</h1>
+    <div class="chat-container" id="chat-container">
+        <div class="message bot-message">
+            안녕하세요! 질문을 기다립니다.
+        </div>
+    </div>
+    <div class="input-area">
+        <input type="text" id="user-input" placeholder="질문을 입력하세요...">
+        <button id="send-button">전송</button>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Enter 키 입력 처리
+            $('#user-input').keypress(function(e) {
+                if (e.which === 13) {
+                    $('#send-button').click();
+                    return false;
+                }
+            });
+
+            // 전송 버튼 클릭 처리
+            $('#send-button').click(function() {
+                const userInput = $('#user-input').val().trim();
+                if (userInput === '') return;
+
+                // 사용자 메시지 추가
+                $('#chat-container').append(
+                    '<div class="message user-message">' + userInput + '</div>'
+                );
+                
+                // 입력창 비우기
+                $('#user-input').val('');
+
+                // 로딩 메시지 추가
+                const loadingDiv = $(
+                    '<div class="message bot-message loading">답변을 생성 중입니다...</div>'
+                );
+                $('#chat-container').append(loadingDiv);
+                
+                // 스크롤 아래로 이동
+                $('#chat-container').scrollTop($('#chat-container')[0].scrollHeight);
+
+                // API 호출
+                $.ajax({
+                    url: '/query',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ query: userInput }),
+                    success: function(data) {
+                        // 로딩 메시지 제거
+                        loadingDiv.remove();
+                        
+                        // 봇 메시지 추가
+                        $('#chat-container').append(
+                            '<div class="message bot-message">' + data.response + '</div>'
+                        );
+                        
+                        // 스크롤 아래로 이동
+                        $('#chat-container').scrollTop($('#chat-container')[0].scrollHeight);
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        // 로딩 메시지 제거
+                        loadingDiv.remove();
+                        
+                        // 오류 메시지 추가
+                        $('#chat-container').append(
+                            '<div class="message bot-message">서버 오류: ' + textStatus + 
+                            '. 자세한 내용은 서버 로그를 확인하세요.</div>'
+                        );
+                        
+                        console.error("AJAX 오류:", textStatus, errorThrown);
+                        
+                        // 스크롤 아래로 이동
+                        $('#chat-container').scrollTop($('#chat-container')[0].scrollHeight);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
